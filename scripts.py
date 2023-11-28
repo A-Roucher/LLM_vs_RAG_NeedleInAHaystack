@@ -4,8 +4,6 @@ import tiktoken
 import glob
 import json
 from langchain.evaluation import load_evaluator
-from langchain.chat_models import ChatOpenAI, ChatAnthropic
-from langchain.schema import HumanMessage, SystemMessage
 from dotenv import load_dotenv
 import numpy as np
 import time
@@ -67,7 +65,7 @@ def insert_needle(needle, context, depth_percent, context_length, enc):
 
 def generate_context(needle, context_length, depth_percent):
     # Load up tiktoken so we navigate tokens more easily
-    enc = tiktoken.encoding_for_model("gpt-4-1106-preview")
+    enc = tiktoken.encoding_for_model("gpt-4")
 
     # Get your Paul Graham files loaded into a string
     context = read_files("PaulGrahamEssays/*.txt")
@@ -126,7 +124,7 @@ def result_exists(results, context_length, depth_percent, version, model):
     return any(conditions_met)
 
 
-def retrieve_relevant_excerpts(long_text, question, embedding_model_name="BAAI/bge-large-en-v1.5", chunk_size=500, top_k=5):
+def retrieve_relevant_excerpts(long_text, question, embedding, chunk_size=500, top_k=6):
     """
     Retrieves relevant excerpts from a long text using a question and an embedding model
     """
@@ -138,16 +136,11 @@ def retrieve_relevant_excerpts(long_text, question, embedding_model_name="BAAI/b
     )
     texts = text_splitter.create_documents([long_text])
 
-    hf = HuggingFaceEmbeddings(
-        model_name=embedding_model_name,
-        model_kwargs={'device': 'cuda'},
-        encode_kwargs={'normalize_embeddings': False}
-    )
-    db = FAISS.from_texts([text.page_content for text in texts], hf)
+    db = FAISS.from_texts([text.page_content for text in texts], embedding)
     retriever = db.as_retriever(search_kwargs={'k':top_k})
     retrieved_docs = retriever.get_relevant_documents(
         question,
     )
-    return '\n'.join([doc.page_content for doc in retrieved_docs])
+    return 'DOCUMENT\n'+'\nDOCUMENT:\n'.join([doc.page_content for doc in retrieved_docs])
 
 

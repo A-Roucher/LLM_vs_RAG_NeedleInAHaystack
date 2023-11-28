@@ -17,6 +17,7 @@ import requests
 load_dotenv()
 
 API_URL = "https://ponb0989se5bi47n.us-east-1.aws.endpoints.huggingface.cloud"
+
 # Constants
 HEADERS = {
 	"Authorization": f"Bearer {os.environ.get('HUGGINGFACEHUB_API_TOKEN')}",
@@ -31,6 +32,7 @@ def query(payload):
 
 
 def init_embedder(embedding_model_name):
+    print(embedding_model_name)
     return HuggingFaceEmbeddings(
         model_name=embedding_model_name,
         model_kwargs={'device': 'cuda'},
@@ -71,14 +73,11 @@ async def main(documents):
 async def get_embeddings(documents):
     # Get embeddings
     await main(documents)
-    print(documents)
     # Make sure we got it all
     count = 0
     for document in documents:
         if document['embedding'] and len(document['embedding']) > 10:
             count += 1
-    print(f'Batch : Embeddings = {count} documents = {len(documents)}')
-
     return [document['embedding'] for document in documents]
     
 
@@ -96,7 +95,7 @@ def retrieve_faiss(text_embeddings, search_vector, top_k):
     return distances, ann
 
 
-async def retrieve_relevant_excerpts_quickly(long_text, question, embedding_model_name="BAAI/bge-large-en-v1.5", chunk_size=500, top_k=5):
+async def retrieve_relevant_excerpts_quickly(long_text, question, embedding, chunk_size=500, top_k=6):
     """
     Retrieves relevant excerpts from a long text using a question and an embedding model
     """
@@ -112,11 +111,10 @@ async def retrieve_relevant_excerpts_quickly(long_text, question, embedding_mode
     text_embeddings = await get_embeddings(texts)
     text_embeddings = np.array(text_embeddings, dtype=np.float32)
 
-    hf_embedding = init_embedder(embedding_model_name)
-    search_vector = np.array(hf_embedding.embed_query(question), dtype=np.float32)
+    search_vector = np.array(embedding.embed_query(question), dtype=np.float32)
     
-    distances, ann = retrieve_faiss(text_embeddings, search_vector, top_k)
+    _, ann = retrieve_faiss(text_embeddings, search_vector, top_k)
     retrieved_docs = [texts[i]['content'] for i in ann[0]]
 
-    return '\nDOCUMENT:\n'.join(retrieved_docs)
+    return 'DOCUMENT\n'+'\nDOCUMENT:\n'.join(retrieved_docs)
 
