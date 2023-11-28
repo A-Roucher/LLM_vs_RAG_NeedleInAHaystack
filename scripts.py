@@ -86,7 +86,7 @@ def evaluate_response(response, needle, question_to_ask, evaluation_model):
         Score 5: The answer has moderate relevance but contains inaccuracies.
         Score 7: The answer aligns with the reference but has minor omissions.
         Score 10: The answer is completely accurate and aligns perfectly with the reference.
-        Keep your explanations extremely short, just give the score
+        Only respond with a numerical score.
         """
     }
 
@@ -142,5 +142,3 @@ def retrieve_relevant_excerpts(long_text, question, embedding, chunk_size=500, t
         question,
     )
     return 'DOCUMENT\n'+'\nDOCUMENT:\n'.join([doc.page_content for doc in retrieved_docs])
-
-
