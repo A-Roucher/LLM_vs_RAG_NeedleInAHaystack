@@ -1,14 +1,9 @@
 import asyncio
-from pathlib import Path
-import json
-import time
 import numpy as np
 
 from aiohttp import ClientSession, ClientTimeout
 from tqdm.notebook import tqdm
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import FAISS
-from langchain.embeddings import HuggingFaceEmbeddings
 import faiss
 from dotenv import load_dotenv
 import os
@@ -30,14 +25,6 @@ def query(payload):
 	response = requests.post(API_URL, headers=HEADERS, json=payload)
 	return response.json()
 
-
-def init_embedder(embedding_model_name):
-    print(embedding_model_name)
-    return HuggingFaceEmbeddings(
-        model_name=embedding_model_name,
-        model_kwargs={'device': 'cuda'},
-        encode_kwargs={'normalize_embeddings': False}
-    )
 
 async def request(document, semaphore):
     # Semaphore guard
@@ -81,12 +68,15 @@ async def get_embeddings(documents):
     return [document['embedding'] for document in documents]
     
 
-def retrieve_faiss(text_embeddings, search_vector, top_k):
+def create_faiss_index(text_embeddings):
     vector_dimension = text_embeddings.shape[1]
     index = faiss.IndexFlatL2(vector_dimension)
     faiss.normalize_L2(text_embeddings)
     index.add(text_embeddings)
-    
+    return index
+
+
+def retrieve_in_faiss_index(index, search_vector, top_k):
     _vector = np.array([search_vector])
     faiss.normalize_L2(_vector)
 
@@ -113,7 +103,8 @@ async def retrieve_relevant_excerpts_quickly(long_text, question, embedding, chu
 
     search_vector = np.array(embedding.embed_query(question), dtype=np.float32)
     
-    _, ann = retrieve_faiss(text_embeddings, search_vector, top_k)
+    index = create_faiss_index(text_embeddings)
+    _, ann = retrieve_in_faiss_index(index, search_vector, top_k)
     retrieved_docs = [texts[i]['content'] for i in ann[0]]
 
     return 'DOCUMENT\n'+'\nDOCUMENT:\n'.join(retrieved_docs)

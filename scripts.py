@@ -7,7 +7,6 @@ from langchain.evaluation import load_evaluator
 from dotenv import load_dotenv
 import numpy as np
 import time
-from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
 
