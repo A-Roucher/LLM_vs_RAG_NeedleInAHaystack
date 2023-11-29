@@ -85,7 +85,7 @@ def retrieve_in_faiss_index(index, search_vector, top_k):
     return distances, ann
 
 
-async def retrieve_relevant_excerpts_quickly(long_text, question, embedding, chunk_size=500, top_k=6):
+async def retrieve_relevant_excerpts_quickly(long_text, question, embedding, chunk_size=500, top_k=6, flag_mentions_of_paris=False):
     """
     Retrieves relevant excerpts from a long text using a question and an embedding model
     """
@@ -98,13 +98,34 @@ async def retrieve_relevant_excerpts_quickly(long_text, question, embedding, chu
     texts = text_splitter.create_documents([long_text])
     texts = [{'content': text.page_content} for text in texts]
 
+
     text_embeddings = await get_embeddings(texts)
     text_embeddings = np.array(text_embeddings, dtype=np.float32)
 
+
     search_vector = np.array(embedding.embed_query(question), dtype=np.float32)
+    # test distance
     
     index = create_faiss_index(text_embeddings)
-    _, ann = retrieve_in_faiss_index(index, search_vector, top_k)
+    distances, ann = retrieve_in_faiss_index(index, search_vector, top_k)
+
+    if flag_mentions_of_paris:
+        paris_indexes = []
+        for i, text in enumerate(texts):
+            if 'Paris' in text['content']:
+                paris_indexes.append(i)
+        faiss.normalize_L2(text_embeddings)
+        _vector = np.array([search_vector])
+        faiss.normalize_L2(_vector)
+        for i, el in enumerate(ann[0]):
+            faiss_distance, square_L2_distance = distances[0][i], np.square(np.linalg.norm(_vector - text_embeddings[el]))
+            np.testing.assert_almost_equal(faiss_distance, square_L2_distance, decimal=5)
+            if i == len(ann[0]) - 1:
+                print("Last selected text distance: ", faiss_distance)
+        print("Flagged text:", texts[paris_indexes[0]]['content'])
+        print("Text was selected? :", (paris_indexes[0] in ann[0]))
+        print("Text distance", np.square(np.linalg.norm(_vector - text_embeddings[paris_indexes[0]])))
+
     retrieved_docs = [texts[i]['content'] for i in ann[0]]
 
     return 'DOCUMENT\n'+'\nDOCUMENT:\n'.join(retrieved_docs)
