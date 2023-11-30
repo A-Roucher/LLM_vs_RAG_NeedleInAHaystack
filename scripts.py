@@ -66,10 +66,10 @@ def generate_context(needle, context_length, depth_percent):
     # Load up tiktoken so we navigate tokens more easily
     enc = tiktoken.encoding_for_model("gpt-4")
 
-    # Get your Paul Graham files loaded into a string
-    context = read_files("PaulGrahamEssays/*.txt")
+    # Get your files loaded into a string
+    context = read_files("Books/*.txt")
 
-    # Truncate the Paul Graham essays to the context length you desire
+    # Truncate the text to the context length you desire
     context = encode_and_trim(context, context_length, enc)
 
     # Insert your random statement according to your depth percent
