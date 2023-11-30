@@ -3,13 +3,20 @@ import numpy as np
 
 from aiohttp import ClientSession, ClientTimeout
 from tqdm.notebook import tqdm
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 import faiss
 from dotenv import load_dotenv
 import os
 import requests
+from haystack import Document
+from haystack.nodes import PreProcessor
 
 load_dotenv()
+
+PREPROCESSOR = PreProcessor(
+    clean_empty_lines=True,
+    clean_whitespace=True,
+    clean_header_footer=False,
+)
 
 API_URL = "https://ponb0989se5bi47n.us-east-1.aws.endpoints.huggingface.cloud"
 
@@ -85,19 +92,18 @@ def retrieve_in_faiss_index(index, search_vector, top_k):
     return distances, ann
 
 
-async def retrieve_relevant_excerpts_quickly(long_text, question, embedding, chunk_size=500, top_k=6, flag_mentions_of_paris=False):
+async def retrieve_relevant_excerpts_quickly(long_text, question, embedding, words_per_chunk=80, top_k=6, flag_mentions_of_paris=False):
     """
     Retrieves relevant excerpts from a long text using a question and an embedding model
     """
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size = chunk_size,
-        chunk_overlap  = 50,
-        length_function = len,
-        add_start_index = True,
+    docs = PREPROCESSOR.split(
+        Document(long_text),
+        split_by="word",
+        split_length=words_per_chunk,
+        split_overlap=10,
+        split_respect_sentence_boundary=True,
     )
-    texts = text_splitter.create_documents([long_text])
-    texts = [{'content': text.page_content} for text in texts]
-
+    texts = [{'content': text.content} for text in docs]
 
     text_embeddings = await get_embeddings(texts)
     text_embeddings = np.array(text_embeddings, dtype=np.float32)

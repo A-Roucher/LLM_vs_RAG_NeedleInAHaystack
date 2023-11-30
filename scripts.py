@@ -67,7 +67,7 @@ def generate_context(needle, context_length, depth_percent):
     enc = tiktoken.encoding_for_model("gpt-4")
 
     # Get your files loaded into a string
-    context = read_files("Books/*.txt")
+    context = read_files("PaulGrahamEssays/*.txt")
 
     # Truncate the text to the context length you desire
     context = encode_and_trim(context, context_length, enc)
