@@ -92,7 +92,7 @@ def retrieve_in_faiss_index(index, search_vector, top_k):
     return distances, ann
 
 
-async def retrieve_relevant_excerpts_quickly(long_text, question, embedding, words_per_chunk=80, top_k=6, flag_mentions_of_paris=False):
+async def retrieve_relevant_excerpts_quickly(long_text, question, embedding, words_per_chunk=50, top_k=15, flag_mentions_of_paris=False):
     """
     Retrieves relevant excerpts from a long text using a question and an embedding model
     """
@@ -100,7 +100,7 @@ async def retrieve_relevant_excerpts_quickly(long_text, question, embedding, wor
         Document(long_text),
         split_by="word",
         split_length=words_per_chunk,
-        split_overlap=10,
+        split_overlap=5,
         split_respect_sentence_boundary=True,
     )
     texts = [{'content': text.content} for text in docs]
